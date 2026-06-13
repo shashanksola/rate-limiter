@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rate-limiter
+    ports:
+      - "8080:8080"    # Map container port 8080 → host port 8080
+    environment:
+      # Server config
+
+      - SERVER_PORT=8080
+      - SERVER_READ_TIMEOUT=15s
+      - SERVER_WRITE_TIMEOUT=15s
+      - SERVER_IDLE_TIMEOUT=60s
+
+      # Redis config — same principle, "redis" is the service name
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: gorest-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
